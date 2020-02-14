@@ -16,6 +16,7 @@ class Config:
         kibana_url = os.getenv("KIBANA_URL")
         listen_port = os.getenv("LISTEN_PORT", DEFAULT_PORT)
         log_level = os.getenv("LOG_LEVEL", "INFO")
+        cert_path = os.getenv("CERT_PATH", "true")
         kibana_login = os.getenv("KIBANA_LOGIN")
         kibana_password = os.getenv("KIBANA_PASSWORD")
 
@@ -24,6 +25,7 @@ class Config:
         logging.basicConfig(level=self.log_level)
         self.kibana_url = _check_url(kibana_url)
         self.listen_port = _check_port(listen_port)
+        self.cert_path = _check_cert(cert_path)
         self.kibana_login = kibana_login
         self.kibana_password = kibana_password
 
@@ -45,6 +47,13 @@ class Config:
             config_list.append(("Kibana login:", self.kibana_login))
             config_list.append(("Kibana password:", "***"))
 
+        if os.path.isfile(self.cert_path):
+            config_list.append(("Cert path:", self.cert_path))
+        elif self.cert_path == "false":
+            config_list.append("SSL verification disabled")
+        else:
+            config_list.append("SSL verification enabled")
+
         max_length = max(map(lambda x: len(x[0]), config_list))
         desc = "== CONFIGURATION ==\n"
         line_template = "%-" + str(max_length) + "s\t%s\n"
@@ -62,6 +71,17 @@ def _check_url(url: str) -> str:
     except ValueError as e:
         raise ValueError("URL is malformed: %s" % e)
     return url
+
+
+def _check_cert(path: str) -> str:
+    if path == "true":
+        return True
+    elif path == "false":
+        return False
+    else:
+        if not os.path.isfile(path):
+            raise ValueError("Cert file must exists")
+        return path
 
 
 def _check_port(port: str) -> int:
